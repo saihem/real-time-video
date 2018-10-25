@@ -1,0 +1,16 @@
+matplotlib==3.0.0
+numpy==1.15.2
+opencv-python==3.4.3.18
+requests==2.19.1
+six==1.11.0
+urllib3==1.23
+flask-restful
+simplejson
+imutils
+
+kafka-python
+
+pillow
+flask-sqlalchemy
+flask-migrate
+pymysql
