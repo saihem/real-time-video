@@ -33,7 +33,7 @@ class Wrapper(object):
         return next(self._gen)
 
 
-def stream_video_image():
+def stream_video_image(gap=10, stop_time=40):
     # Initializes webcam and for a frequency of the <gap_time> sends zip of images to an endpoint
     cap = cv2.VideoCapture(0)
     # Define the codec and create VideoWriter object
@@ -90,5 +90,5 @@ def start_camera():
 # api.add_resource(Cam, "/video_feed/")
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', debug=True, port=8000, threaded=True)
     # stream_video_image()
