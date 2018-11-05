@@ -1,23 +1,28 @@
-from flask import Flask, render_template, Response, stream_with_context, jsonify
+from flask import Flask, render_template, Response, jsonify, flash, request, redirect, url_for, send_from_directory
 import requests
 import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import asyncio
-import aiohttp
 import socket
 import cv2
 import time
 import io
 import binascii
 import os
+import glob
 import multiprocessing
 from kafka import KafkaConsumer
-from .process_image import send_image
+from .process_image import process_image, train_image
 from .camera import stream_video
 from . import app
-from .models import alchemyencoder, Response as ModelResp, db
+from .models import db, Response as ModelResp
 from sqlalchemy.orm import joinedload
+from werkzeug.utils import secure_filename
+from .config import ALLOWED_EXTENSIONS
+from flask_cors import CORS, cross_origin
+
+CORS(app, support_credentials=True)
 
 
 @app.route('/')
@@ -32,21 +37,21 @@ def index():
 
 def this_dev_stream():
     start_time = time.time()
-    gap = 10
+    gap = 5
     while True:
         for frame in stream_video():
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + open(frame, 'rb').read() + b'\r\n\r\n')
-            elapsed = round(time.time() - start_time)
+            #elapsed = round(time.time() - start_time)
             # # img = cv2.imdecode(np.frombuffer(msg.value, np.uint8), cv2.CV_LOAD_IMAGE_COLOR)
-            if elapsed % gap == 0:
-                image_bytes = io.BytesIO(open(frame, 'rb').read())
-                send = multiprocessing.Process(target=send_image, args=(image_bytes, elapsed))
-                send.daemon = True
-                send.start()
+            # if elapsed % gap == 0:
+            #     image_bytes = io.BytesIO(open(frame, 'rb').read())
+            #     send = multiprocessing.Process(target=send_image, args=(image_bytes, elapsed))
+            #     send.daemon = True
+            #     send.start()
 
 
-# BELOW RUNS SCRIPT THAT STARTS IN VIDEO LOAD
+# Starts kafka consumer and receives bytes from remote stream
 def remote_stream(consumer):
     start_time = time.time()
     while True:
@@ -55,14 +60,13 @@ def remote_stream(consumer):
         for msg in consumer:
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + msg.value + b'\r\n\r\n')
-            # put everything below in an async function
-            elapsed = time.time() - start_time
+            #elapsed = time.time() - start_time
             # img = cv2.imdecode(np.frombuffer(msg.value, np.uint8), cv2.CV_LOAD_IMAGE_COLOR)
             # if elapsed % gap == 0:
-            image_bytes = io.BytesIO(msg.value)
-            send = multiprocessing.Process(target=send_image, args=(image_bytes, elapsed))
-            send.daemon = True
-            send.start()
+            #     image_bytes = io.BytesIO(msg.value)
+            #     send = multiprocessing.Process(target=process_image, args=(image_bytes, elapsed))
+            #     send.daemon = True
+            #     send.start()
 
 
 @app.route('/video', methods=['GET'])
@@ -87,10 +91,70 @@ def get_response():
         resp['type'] = r.type.name
         resp['response'] = r.response
     return jsonify(resp)
-    # return json.dumps([dict(r) for r in responses], default=alchemyencoder)
+
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'],
+                               filename)
 
 
 @app.route('/api/imgs', methods=['POST'])
+@cross_origin(supports_credentials=True)
 def post_img():
-    resp = {'file':datetime.datetime.now()}
+    resp = {}
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files['file']
+        # if user does not select file, browser also
+        # submit an empty part without filename
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            file_path = url_for('uploaded_file',
+                                filename=filename)
+            resp = {file_path: datetime.datetime.now()}
+            send = multiprocessing.Process(target=process_image, args=(cv2.imread(file_path, cv2.IMREAD_COLOR),))
+            send.daemon = True
+            send.start()
+    return jsonify(resp)
+
+def get_latest_image():
+    list_of_images = glob.glob('frame-??.jpeg') + glob.glob('frame-?.jpeg') + glob.glob('frame-???.jpeg')
+    latest_file_creation_time = os.path.getctime  # * means all if need specific format then *.csv
+    files = []
+    files.append(max(list_of_images, key=latest_file_creation_time))
+    files.append(sorted(list_of_images, key=latest_file_creation_time)[-2])
+    files.append(sorted(list_of_images, key=latest_file_creation_time)[-3])
+    files.append(sorted(list_of_images, key=latest_file_creation_time)[-4])
+    files.append(sorted(list_of_images, key=latest_file_creation_time)[-5])
+    return files, max(list_of_images, key=latest_file_creation_time)
+
+@app.route('/api/train', methods=['GET'])
+def start_training():
+    files, latest_file = get_latest_image()
+    resp = {latest_file: datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+    train_image(files)
+    return jsonify(resp)
+
+
+@app.route('/api/analyze', methods=['GET'])
+def analyze():
+    files, latest_file = get_latest_image()
+    resp = {latest_file: datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+    analysis = process_image(files)
+    # send = multiprocessing.Process(target=process_image, args=(cv2.imread(latest_file, cv2.IMREAD_COLOR),))
+    # send.daemon = True
+    # send.start()
     return jsonify(resp)

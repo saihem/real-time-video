@@ -66,6 +66,29 @@ def stream_video_image(gap=10, stop_time=40):
     cv2.destroyAllWindows()
 
 
+def get_pic():
+    # Initializes webcam and for a frequency of the <gap_time> sends zip of images to an endpoint
+    cap = cv2.VideoCapture(0)
+    # Define the codec and create VideoWriter object
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    out = cv2.VideoWriter('output.avi', fourcc, 25, (1920, 1080))
+    start_time = int(round(time.time()))
+    try:
+        while (True):
+            grabbed, frame = cap.read()
+            current_time = int(round(time.time()))
+            out.write(frame)
+            seconds = current_time - start_time
+            image_file = f"frame-{seconds}.jpeg"
+            return cv2.imwrite(image_file, frame)
+            # # bytes_file = open(image_file, 'rb').read()
+            # ret, jpeg = cv2.imencode('.jpeg', frame)
+    except:
+        sys.exit(1)
+    cap.release()
+    out.release()
+    cv2.destroyAllWindows()
+
 # class Cam(Resource):
 #     def get(self):
 #         rv = Response(stream_video_image(), content_type='text/event-stream')
@@ -83,6 +106,11 @@ def start_camera():
     thread.start()
     return jsonify({"started": "started camera"})
 
+
+@app.route('/get_pic', methods=['GET'])
+def start_camera():
+    image = get_pic()
+    return jsonify({time.time(): image})
 
 # return Response(stream_with_context(Wrapper(stream_video_image())))
 

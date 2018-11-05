@@ -16,6 +16,8 @@ def stream_video():
             current_time = int(round(time.time()))
             out.write(frame)
             seconds = current_time - start_time
+            if seconds >999:
+                start_time = int(round(time.time()))
             image_file = f"frame-{seconds}.jpeg"
             cv2.imwrite(image_file, frame)
             yield image_file

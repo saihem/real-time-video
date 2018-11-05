@@ -7,10 +7,15 @@ from . import db
 
 import requests
 import datetime
+from image_processing.store_face_name import store
+from image_processing.analyze_faces import analyze
 
 def get_weather():
     #reston ID == 4781530
-    response = requests.get('http://api.openweathermap.org/data/2.5/weather?id=4781530&APPID=844269118cfd1233e896c26cc113fddc')
+    try:
+        response = requests.get('http://api.openweathermap.org/data/2.5/weather?id=4781530&APPID=844269118cfd1233e896c26cc113fddc')
+    except:
+        return 400
     forecasts = []
     responses = {
         'rain': "Wear a rain coat! It is forecasted to rain today!",
@@ -25,19 +30,34 @@ def get_weather():
         forecasts = [forecast['main'] for forecast in response.json()['weather']]
         response__kwargs = {'response': responses[forecasts[0].lower()],
                             'type_id': response_type.id,
-                            #'time': datetime.datetime.now
+                             'time': datetime.datetime.now()
                             }
         new_resp = get_or_create(db.session, Response, **response__kwargs)[0]
     return response.status_code
 
 
-def send_image(image_bytes, elapsed):
-    # img = Image.open(image_bytes)
-    # draw = ImageDraw.Draw(img)
-    # # font = ImageFont.truetype("arial.ttf", 14)
-    # # draw.text((0, 220), "This is a test11", (255, 255, 0), font=font)
-    # # draw = ImageDraw.Draw(img)
-    # img.save(f"frame_{elapsed}.jpeg")
-    # print("in image")
-    check_weather = get_weather()
+def process_image(image_bytes):
+    get_weather()
+    analysis = analyze(image_bytes)
+    responses = {
+        'neutral': "You're too neutral today. Don't be a plain jane.",
+        'sad': "Don't be sad. Cheer up. The day will get better!",
+        'happy': "You're doing great today. Keep up the happiness!",
+        'fear': "Have you seen a ghost? There's nothing to be afraid ofm.",
+        'disgust': "Did you drink some expired milk? Wash it down with water.",
+        'angry': "Whoa, you're angry! HULK SMASH!",
+        'surprise': "SURPRISE!"
+    }
+    for name, emotion in analysis.items():
+        response_type = get_or_create(db.session, ResponseType, **{'name': 'emotion'})[0]
+        response__kwargs = {'response': f'Hey {name}! {responses[emotion.lower()]}',
+                            'type_id': response_type.id,
+                            'time': datetime.datetime.now()
+                            }
+        new_resp = get_or_create(db.session, Response, **response__kwargs)[0]
+
+
+def train_image(image_bytes):
+    store(image_bytes)
+
 

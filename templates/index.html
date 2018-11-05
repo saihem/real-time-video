@@ -14,20 +14,29 @@
   <body>
   <p><img src="{{ url_for('static', filename='img/oracle-logo.png') }}"><h4>Oracle Hub Feed</h4></p>
     <div class="container">
-         <img src="{{ url_for('video_feed') }}">
-
-  <table class="feed table table-striped">
-      <thead>
-      <th>Type</th>
-      <th>Time</th>
-      <th>Response</th>
-      </thead>
-    <tbody class="feeds">
-        <tr><td colspan="3"></td></tr>
-    </tbody>
-  </table>
-
+        <div class="row">
+            <div class="col-md-12">
+                <img src="{{ url_for('video_feed') }}">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-9">
+                  <table class="feed table table-striped">
+                      <thead>
+                      <th>Type</th>
+                      <th>Time</th>
+                      <th>Response</th>
+                      </thead>
+                    <tbody class="feeds">
+                        <tr><td colspan="3"></td></tr>
+                    </tbody>
+                  </table>
+            </div>
+            <div class="col-md-3">
+                <button type="button" id="train" class="btn btn-primary">Train</button>
+                <button type="button" id="analyze" class="btn btn-primary">Analyze</button>
+            </div>
+        </div>
     </div>
-
   </body>
 </html>

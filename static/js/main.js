@@ -15,3 +15,26 @@ function pollResponses() {
 
 
 pollResponses();
+$(document).ready(function() {
+    $('#train').click(function () {
+        $.ajax({
+                type: "get",
+                url: "/api/train",
+                success:function(data)
+                {
+                    console.log(data);
+                }
+            });
+    });
+
+    $('#analyze').click(function () {
+        $.ajax({
+                type: "get",
+                url: "/api/analyze",
+                success:function(data)
+                {
+                    console.log(data);
+                }
+            });
+    });
+});

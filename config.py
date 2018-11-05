@@ -2,13 +2,13 @@ import os
 
 from flask import Flask
 
-from werkzeug.utils import secure_filename
 
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
 
 def create_app(config_name):
     app = Flask(__name__, instance_relative_config=True, template_folder='templates', static_url_path='/static')
     app.config.from_object(app_config[config_name])
+    app.secret_key = 'my unobvious secret key'
     return app
 
 
@@ -30,7 +30,8 @@ class DevelopmentConfig(Config):
     DEBUG = True
     SQLALCHEMY_ECHO = True
     SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:@localhost/img_feed'
-    UPLOAD_FOLDER = '/path/to/the/uploads'
+    UPLOAD_FOLDER = 'images/uploaded'
+    SESSION_TYPE = 'filesystem'
 
 
 class ProductionConfig(Config):
