@@ -21,6 +21,7 @@ from sqlalchemy.orm import joinedload
 from werkzeug.utils import secure_filename
 from .config import ALLOWED_EXTENSIONS
 from flask_cors import CORS, cross_origin
+from sqlalchemy import desc
 
 CORS(app, support_credentials=True)
 
@@ -42,7 +43,7 @@ def this_dev_stream():
         for frame in stream_video():
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + open(frame, 'rb').read() + b'\r\n\r\n')
-            #elapsed = round(time.time() - start_time)
+            # elapsed = round(time.time() - start_time)
             # # img = cv2.imdecode(np.frombuffer(msg.value, np.uint8), cv2.CV_LOAD_IMAGE_COLOR)
             # if elapsed % gap == 0:
             #     image_bytes = io.BytesIO(open(frame, 'rb').read())
@@ -60,7 +61,7 @@ def remote_stream(consumer):
         for msg in consumer:
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + msg.value + b'\r\n\r\n')
-            #elapsed = time.time() - start_time
+            # elapsed = time.time() - start_time
             # img = cv2.imdecode(np.frombuffer(msg.value, np.uint8), cv2.CV_LOAD_IMAGE_COLOR)
             # if elapsed % gap == 0:
             #     image_bytes = io.BytesIO(msg.value)
@@ -84,12 +85,15 @@ def video_feed():
 
 @app.route('/api/resps', methods=['GET'])
 def get_response():
-    mins_ago = datetime.datetime.now() - datetime.timedelta(minutes=2)
-    resp = {}
-    for r in list(db.session.query(ModelResp).options(joinedload(ModelResp.type)).filter(ModelResp.time <= mins_ago)):
-        resp['time'] = r.time.strftime("%Y-%m-%d %H:%M:%S")
-        resp['type'] = r.type.name
-        resp['response'] = r.response
+    mins_ago = datetime.datetime.now() - datetime.timedelta(minutes=5)
+    resp = []
+    for r in list(
+            db.session.query(ModelResp).options(joinedload(ModelResp.type)).filter(ModelResp.time >= mins_ago).order_by(
+                    ModelResp.time.desc())):
+        resp.append({'time': r.time.strftime("%Y-%m-%d %H:%M:%S"),
+                     'type': r.type.name,
+                     'response': r.response})
+
     return jsonify(resp)
 
 
@@ -130,6 +134,7 @@ def post_img():
             send.start()
     return jsonify(resp)
 
+
 def get_latest_image():
     list_of_images = glob.glob('frame-??.jpeg') + glob.glob('frame-?.jpeg') + glob.glob('frame-???.jpeg')
     latest_file_creation_time = os.path.getctime  # * means all if need specific format then *.csv
@@ -141,19 +146,20 @@ def get_latest_image():
     files.append(sorted(list_of_images, key=latest_file_creation_time)[-5])
     return files, max(list_of_images, key=latest_file_creation_time)
 
+
 @app.route('/api/train', methods=['GET'])
 def start_training():
     files, latest_file = get_latest_image()
-    resp = {latest_file: datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-    train_image(files)
+    trained = train_image(files)
+    resp = [latest_file, trained, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
     return jsonify(resp)
 
 
 @app.route('/api/analyze', methods=['GET'])
 def analyze():
     files, latest_file = get_latest_image()
-    resp = {latest_file: datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
     analysis = process_image(files)
+    resp = [latest_file, analysis, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
     # send = multiprocessing.Process(target=process_image, args=(cv2.imread(latest_file, cv2.IMREAD_COLOR),))
     # send.daemon = True
     # send.start()

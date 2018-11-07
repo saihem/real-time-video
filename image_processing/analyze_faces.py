@@ -16,11 +16,12 @@ def analyze(images=None):
     known_names, known_face_encodings = cli.scan_known_people(known_faces_path)
 
     image = images[0]
-    random_faces_image = cv2.imread(image, cv2.IMREAD_COLOR)
-    random_faces_image = random_faces_image.copy()[:, :, ::-1]
+    random_faces_image_read = cv2.imread(image, cv2.IMREAD_COLOR)
+    random_faces_image = random_faces_image_read.copy()[:, :, ::-1]
     recognized_faces = get_names_faces(random_faces_image, known_names, known_face_encodings)
 
-
+    if not recognized_faces:
+        return {}
     name_emotion = {}
 
     if recognized_faces is None:
@@ -31,7 +32,10 @@ def analyze(images=None):
     for face_name in recognized_faces:
         face_bounding_boxes.append(face_name[1])
 
-    emotion_bounding_boxes = get_emotions_faces(random_faces_image, face_bounding_boxes)
+    try:
+        emotion_bounding_boxes = get_emotions_faces(random_faces_image_read, face_bounding_boxes)
+    except:
+        return {}
 
     for name_bounding_box, emotion_bounding_box in zip(recognized_faces, emotion_bounding_boxes):
         name_emotion[name_bounding_box[0]] = emotion_bounding_box[0]

@@ -46,7 +46,8 @@ def store(images=None):
             continue
         if count_array[0] ==  count:
             names.append(name)
-
+    if not names:
+        return False
     nametag_text = max(names, key=len)
     cropped_face = get_cropped_face(nametag_text_cropped_face[nametag_text][1])
 
@@ -67,6 +68,7 @@ def store(images=None):
 
         cv2.imwrite(filename, cropped_face)
         print(filename)
+    return True
 
 
 def video():
