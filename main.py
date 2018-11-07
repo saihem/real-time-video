@@ -83,16 +83,30 @@ def video_feed():
             mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
+#Queries latest responses
 @app.route('/api/resps', methods=['GET'])
 def get_response():
+    emotion_emoji = {
+        'neutral': "😐😶",
+        'sad': "😢",
+        'happy': "😀😁",
+        'fear': "😱",
+        'disgust': "😖🤮",
+        'angry': "😡",
+        'surprise': "😲🤯"
+    }
     mins_ago = datetime.datetime.now() - datetime.timedelta(minutes=5)
     resp = []
     for r in list(
             db.session.query(ModelResp).options(joinedload(ModelResp.type)).filter(ModelResp.time >= mins_ago).order_by(
                     ModelResp.time.desc())):
+        response_display = r.response
+        if r.type.name == 'emotion':
+            emoji = emotion_emoji[list(word for word in emotion_emoji.keys() if word in r.response.lower())[0]]
+            response_display = f"{r.response} {emoji}"
         resp.append({'time': r.time.strftime("%Y-%m-%d %H:%M:%S"),
                      'type': r.type.name,
-                     'response': r.response})
+                     'response': response_display})
 
     return jsonify(resp)
 

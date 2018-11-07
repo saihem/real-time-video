@@ -46,9 +46,9 @@ def process_image(images):
     responses = {
         'neutral': "You're too neutral today. Don't be a plain jane.",
         'sad': "Don't be sad. Cheer up. The day will get better!",
-        'happy': "You're doing great today. Keep up the happiness!",
-        'fear': "Have you seen a ghost? There's nothing to be afraid of.",
-        'disgust': "Did you drink some expired milk? Wash it down with water.",
+        'happy': "YAYYY Stay happy!",
+        'fear': "Have you seen a ghost? There's nothing to fear.",
+        'disgust': "Did you drink some expired milk? Wash down the disgust with water.",
         'angry': "Whoa, you're angry! HULK SMASH!",
         'surprise': "SURPRISE!"
     }
