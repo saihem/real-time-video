@@ -29,7 +29,7 @@ class DevelopmentConfig(Config):
 
     DEBUG = True
     SQLALCHEMY_ECHO = True
-    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:@localhost/img_feed'
+    SQLALCHEMY_DATABASE_URI = ''
     UPLOAD_FOLDER = 'images/uploaded'
     SESSION_TYPE = 'filesystem'
 

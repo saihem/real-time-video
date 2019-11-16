@@ -5,10 +5,11 @@ from PIL import ImageFont
 from .models import get_or_create, Response, ResponseType
 from . import db
 
+from multiprocessing import Process, Queue, Pool
 import requests
 import datetime
-from image_processing.store_face_name import store
-from image_processing.analyze_faces import analyze
+from .image_processing.store_face_name import store
+from .image_processing.analyze_faces import analyze
 
 def get_weather():
     #reston ID == 4781530
@@ -38,9 +39,19 @@ def get_weather():
     return response.status_code
 
 
-def process_image(images):
-    get_weather()
-    analysis = analyze(images)
+def process_image(images, em_face):
+    #get_weather()
+    #analysis = analyze(images)
+
+    #consuecutive clicks of analyze require each analysis to be on it's own process
+    # with Pool(processes=4) as pool:
+    #     analysis = pool.apply_async(analyze, (images,))
+    # q = Queue()
+    # send = Process(target=analyze, args=(q,images))
+    # send.start()
+    # analysis = q.get()
+    # send.join()
+    analysis = analyze(images, em_face)
     if not analysis:
         return False
     responses = {
@@ -53,7 +64,7 @@ def process_image(images):
         'surprise': "SURPRISE!"
     }
     for name, emotion in analysis.items():
-        response_type = get_or_create(db.session, ResponseType, **{'name': 'emotion'})[0]
+        response_type = get_or_create(db.session, ResponseType, **{'name': emotion})[0]
         response__kwargs = {'response': f'Hey {name}! {responses[emotion.lower()]}',
                             'type_id': response_type.id,
                             'time': datetime.datetime.now()
