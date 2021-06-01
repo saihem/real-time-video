@@ -1,5 +1,5 @@
 requests==2.20.0
-urllib3==1.23
+urllib3==1.26.5
 flask-restful
 simplejson
 imutils
