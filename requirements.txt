@@ -17,7 +17,7 @@ dlib==19.16.0
 face-recognition==1.2.3
 face-recognition-models==0.3.0
 imutils==0.5.1
-numpy==1.15.3
+numpy==1.22.0
 opencv-contrib-python==3.4.3.18
 pytesseract==0.2.5
 keras==2.0.5
